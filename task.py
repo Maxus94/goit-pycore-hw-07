@@ -154,12 +154,20 @@ def change_contact(args, book: AddressBook):
     return "Contact Updated."
 
 def phones(args, book: AddressBook):
-    name = args            
+    name = args[0]            
     if book.find(name):
         return book.find(name)
     else: 
         raise KeyError(f"Contact with name {name} doesn't exist")
     
+def add_contact_birthday(args, book: AddressBook):
+    name, birthday = args            
+    if book.find(name):
+        book.find(name).add_birthday(birthday)
+    else: 
+        raise KeyError(f"Contact with name {name} doesn't exist")
+    return "Birthday added."
+
 
 def main():
     book = AddressBook()
@@ -191,8 +199,9 @@ def main():
             print(book)
             # реалізація
 
-        # elif command == "add-birthday":
-        #     # реалізація
+        elif command == "add-birthday":
+            print(add_contact_birthday(args, book))
+            # реалізація
 
         # elif command == "show-birthday":
         #     # реалізація
