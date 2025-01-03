@@ -25,7 +25,7 @@ class Phone(Field):
         if len(value) == 10 and len(digits) == 10:
             super().__init__(value)            
         else:
-            raise print("Phone number must have 10 digits")       
+            raise ValueError("Phone number must have 10 digits")
 
 class Birthday(Field):
     def __init__(self, value):
@@ -75,7 +75,7 @@ class Record:
             print('Such phone number does not exist')     
 
     def __str__(self):        
-        return f"Contact name: {self.name.value}, Birthday: {self.birthday}, phones: {'; '.join(p.value for p in self.phones)}"
+        return f"Contact name: {self.name.value}, Birthday: {self.birthday or "Birthday not added"}, phones: {'; '.join(p.value for p in self.phones)}"
 
 class AddressBook(UserDict):
     # реалізація класу
@@ -85,8 +85,7 @@ class AddressBook(UserDict):
     def add_record(self, record):        
         self.data[record.name.value] = record        
     
-    def find(self, name):                        
-        print(self.data.keys())
+    def find(self, name):       
         if name in self.data.keys():
             return(self.data[name])            
         else: 
@@ -125,6 +124,19 @@ class AddressBook(UserDict):
                 congratulation_dates.append({"name": name, "congratulation_date":congratulation_date})                
         return(congratulation_dates)
 
+def input_error(func):
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except KeyError as e:
+            return e.args[0]
+        except IndexError as e:
+            return e
+        except ValueError as e:
+            return e
+    return inner
+
+
 def parse_input(user_input):
     try:
         cmd, *args = user_input.split()
@@ -133,8 +145,11 @@ def parse_input(user_input):
     except:
         return " "    
     
+@input_error
 def add_contact(args, book: AddressBook):
-    name, phone, *_ = args
+    try:
+        name, phone, *_ = args
+    except: raise ValueError("Please, enter Name and phone number")
     record = book.find(name)    
     message = "Contact updated."
     if record is None:
@@ -145,29 +160,54 @@ def add_contact(args, book: AddressBook):
         record.add_phone(phone)
     return message
 
+@input_error
 def change_contact(args, book: AddressBook):
-    name, phone, new_phone = args        
+    try:
+        name, phone, new_phone = args
+    except:
+         raise ValueError("Please, enter name, old phone number and new phone number")        
     if book.find(name):
         book.find(name).edit_phone(phone, new_phone)
     else: 
         raise KeyError(f"Contact with name {name} doesn't exist")
     return "Contact Updated."
 
+@input_error
 def phones(args, book: AddressBook):
-    name = args[0]            
+    try:
+        name = args[0]        
+    except:
+        raise ValueError("Please, enter name")
     if book.find(name):
-        return book.find(name)
+        user_phones=[]
+        for user_phone in book.find(name).phones:
+            user_phones.append(user_phone.value)
+        return user_phones
     else: 
         raise KeyError(f"Contact with name {name} doesn't exist")
     
+@input_error
 def add_contact_birthday(args, book: AddressBook):
-    name, birthday = args            
+    try:
+        name, birthday = args
+    except:
+        raise ValueError("Please, enter name and birthday date")            
     if book.find(name):
         book.find(name).add_birthday(birthday)
     else: 
         raise KeyError(f"Contact with name {name} doesn't exist")
     return "Birthday added."
 
+@input_error
+def contact_birthday(args, book: AddressBook):
+    try:
+        name = args[0]  
+    except:
+        raise ValueError("Please, enter name")          
+    if book.find(name):
+        return book.find(name).birthday
+    else: 
+        raise KeyError(f"Contact with name {name} doesn't exist")
 
 def main():
     book = AddressBook()
@@ -193,24 +233,33 @@ def main():
 
         elif command == "phone":
             # реалізація
-            print(phones(args, book))
+            phones_list = phones(args, book)
+            phones_string = ''
+            for phone in phones_list:
+                phones_string = phones_string + " " + str(phone)
+            print(f"User {args[0]} has phone numbers:{phones_string}")
 
         elif command == "all":
-            print(book)
+            adress_book = book if len(book)>0 else "Address book is empty"
+            print(adress_book)
             # реалізація
 
         elif command == "add-birthday":
             print(add_contact_birthday(args, book))
             # реалізація
 
-        # elif command == "show-birthday":
-        #     # реалізація
+        elif command == "show-birthday":
+            birthday_date = contact_birthday(args, book) or f"Birthday not added for {args[0]}"
+            print(birthday_date)
+            # реалізація
 
-        # elif command == "birthdays":
-        #     # реалізація
+        elif command == "birthdays":
+            # реалізація
+            week_birthdays = book.get_upcoming_birthdays() if len(book.get_upcoming_birthdays()) > 0 else "There is no birthdays during next 7 days"
+            print(week_birthdays)
 
-        # else:
-        #     print("Invalid command.")
+        else:
+            print("Invalid command.")
 
 if __name__ == "__main__":
     main()
